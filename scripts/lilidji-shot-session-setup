@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PACKAGE_VERSION="${LILIDJI_SHOT_VERSION:-1.0.0-1}"
+PACKAGE_VERSION="${LILIDJI_SHOT_VERSION:-1.0.1-1}"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/lilidji-shot"
 STATE_FILE="${CONFIG_DIR}/session-setup-version"
 
@@ -27,9 +27,22 @@ ensure_custom_keybindings() {
 import ast
 import sys
 
-items = ast.literal_eval(sys.argv[1])
+raw = sys.argv[1].strip()
+if raw.startswith("@"):
+    _, _, raw = raw.partition(" ")
+raw = raw.strip()
+
+try:
+    items = ast.literal_eval(raw)
+except Exception:
+    items = []
+
+if not isinstance(items, list):
+    items = []
+
 for item in items:
-    print(item)
+    if isinstance(item, str):
+        print(item)
 PY
 )"
 

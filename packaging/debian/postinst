@@ -14,7 +14,7 @@ run_user_setup() {
     HOME="$user_home" \
     XDG_RUNTIME_DIR="/run/user/$user_uid" \
     DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$user_uid/bus" \
-    LILIDJI_SHOT_VERSION="1.0.0-1" \
+    LILIDJI_SHOT_VERSION="1.0.1-1" \
     /usr/bin/lilidji-shot-session-setup || true
 }
 
