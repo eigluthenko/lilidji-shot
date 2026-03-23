@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -u
+
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export LANG=ru_RU.UTF-8
+export LANGUAGE=ru_RU:ru
+export LC_ALL=ru_RU.UTF-8
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+pictures_dir="$(/usr/bin/xdg-user-dir PICTURES 2>/dev/null || true)"
+if [ -z "${pictures_dir}" ] || [ "${pictures_dir}" = "${HOME}" ]; then
+  pictures_dir="${HOME}/Pictures"
+fi
+
+save_dir="${pictures_dir}/Screenshots"
+/usr/bin/mkdir -p "${save_dir}"
+
+timestamp="$(/usr/bin/date +%Y-%m-%d_%H-%M-%S)"
+target="${save_dir}/screenshot_${timestamp}.png"
+
+mode="${1:-area}"
+
+case "${mode}" in
+  area)
+    if [ "${XDG_SESSION_TYPE:-}" = "x11" ]; then
+      exec /usr/bin/python3 "${script_dir}/lilidji-shot-ui" area
+    fi
+    export QT_QPA_PLATFORM=wayland
+    cmd=(/usr/bin/flameshot gui --clipboard --path "${target}")
+    ;;
+  full)
+    if [ "${XDG_SESSION_TYPE:-}" = "x11" ]; then
+      exec /usr/bin/python3 "${script_dir}/lilidji-shot-ui" full
+    fi
+    export QT_QPA_PLATFORM=wayland
+    cmd=(/usr/bin/flameshot full --clipboard --path "${target}")
+    ;;
+  folder)
+    exec /usr/bin/xdg-open "${save_dir}"
+    ;;
+  launcher)
+    if [ "${XDG_SESSION_TYPE:-}" = "x11" ]; then
+      exec /usr/bin/python3 "${script_dir}/lilidji-shot-ui" area
+    fi
+    export QT_QPA_PLATFORM=wayland
+    exec /usr/bin/flameshot launcher
+    ;;
+  *)
+    echo "Usage: lilidji-shot [area|full|folder|launcher]" >&2
+    exit 2
+    ;;
+esac
+
+"${cmd[@]}"
+status=$?
+
+if [ "${status}" -ne 0 ] && [ ! -f "${target}" ]; then
+  exit 0
+fi
+
+if [ -f "${target}" ]; then
+  /usr/bin/notify-send "Скриншот готов" "Файл сохранён в ${target} и скопирован в буфер обмена."
+fi
+
+exit "${status}"

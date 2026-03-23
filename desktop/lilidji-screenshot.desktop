@@ -1,0 +1,24 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Скриншот и буфер
+Comment=Снимок области с рисованием, сохранением и копированием в буфер
+Exec=/usr/bin/lilidji-shot area
+Icon=flameshot
+Terminal=false
+Categories=Utility;
+Keywords=screenshot;capture;clipboard;flameshot;
+StartupNotify=true
+Actions=Area;Full;Folder;
+
+[Desktop Action Area]
+Name=Скриншот области
+Exec=/usr/bin/lilidji-shot area
+
+[Desktop Action Full]
+Name=Весь экран
+Exec=/usr/bin/lilidji-shot full
+
+[Desktop Action Folder]
+Name=Открыть папку скриншотов
+Exec=/usr/bin/lilidji-shot folder

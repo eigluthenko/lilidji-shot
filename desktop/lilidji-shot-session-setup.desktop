@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Lilidji Shot Session Setup
+Comment=Настраивает горячие клавиши и интеграцию с Codex CLI
+Exec=/usr/bin/lilidji-shot-session-setup
+NoDisplay=true
+OnlyShowIn=GNOME;Unity;
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=3

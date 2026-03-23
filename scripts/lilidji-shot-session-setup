@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PACKAGE_VERSION="${LILIDJI_SHOT_VERSION:-1.0.0-1}"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/lilidji-shot"
+STATE_FILE="${CONFIG_DIR}/session-setup-version"
+
+mkdir -p "${CONFIG_DIR}"
+
+if ! command -v gsettings >/dev/null 2>&1; then
+  exit 0
+fi
+
+ensure_custom_keybindings() {
+  local current current_paths updated
+  local desired_paths=(
+    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/lilidji-shot-area/"
+    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/lilidji-shot-full/"
+    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/lilidji-shot-launcher/"
+    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/lilidji-codex-image-paste/"
+  )
+  local filtered=()
+  local path schema command_value desired
+
+  current="$(gsettings get org.gnome.settings-daemon.plugins.media-keys custom-keybindings)"
+  current_paths="$(python3 - "$current" <<'PY'
+import ast
+import sys
+
+items = ast.literal_eval(sys.argv[1])
+for item in items:
+    print(item)
+PY
+)"
+
+  while IFS= read -r path; do
+    if [[ -z "${path}" ]]; then
+      continue
+    fi
+    schema="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${path}"
+    command_value="$(gsettings get "${schema}" command 2>/dev/null || true)"
+    case "${command_value}" in
+      *lilidji-shot*|*codex-image-paste*)
+        ;;
+      *)
+        filtered+=("${path}")
+        ;;
+    esac
+  done <<< "${current_paths}"
+
+  for desired in "${desired_paths[@]}"; do
+    if [[ ! " ${filtered[*]} " =~ [[:space:]]${desired}[[:space:]] ]]; then
+      filtered+=("${desired}")
+    fi
+  done
+
+  updated="$(python3 - "${filtered[@]}" <<'PY'
+import sys
+print(repr(sys.argv[1:]))
+PY
+)"
+  gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "${updated}"
+}
+
+set_binding() {
+  local path="$1"
+  local name="$2"
+  local command="$3"
+  local binding="$4"
+  local schema="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${path}"
+
+  gsettings set "${schema}" name "${name}"
+  gsettings set "${schema}" command "${command}"
+  gsettings set "${schema}" binding "${binding}"
+}
+
+ensure_custom_keybindings
+
+gsettings set org.gnome.shell.keybindings screenshot "[]" || true
+gsettings set org.gnome.shell.keybindings screenshot-window "[]" || true
+gsettings set org.gnome.shell.keybindings show-screenshot-ui "[]" || true
+
+set_binding \
+  "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/lilidji-shot-area/" \
+  "Скриншот области" \
+  "/usr/bin/lilidji-shot area" \
+  "Print"
+
+set_binding \
+  "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/lilidji-shot-full/" \
+  "Скриншот экрана" \
+  "/usr/bin/lilidji-shot full" \
+  "<Shift>Print"
+
+set_binding \
+  "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/lilidji-shot-launcher/" \
+  "Меню скриншотов" \
+  "/usr/bin/lilidji-shot launcher" \
+  "<Alt>Print"
+
+set_binding \
+  "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/lilidji-codex-image-paste/" \
+  "Codex вставка изображения" \
+  "/usr/bin/codex-image-paste" \
+  "<Control><Shift>v"
+
+gsettings set org.gnome.Terminal.Legacy.Keybindings:/org/gnome/terminal/legacy/keybindings/ paste "<Shift>Insert" || true
+
+printf '%s\n' "${PACKAGE_VERSION}" > "${STATE_FILE}"

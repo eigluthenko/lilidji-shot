@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+active_window="$(xprop -root _NET_ACTIVE_WINDOW 2>/dev/null | awk '{print $5}')"
+
+if [[ -z "${active_window}" || "${active_window}" == "0x0" ]]; then
+  exit 0
+fi
+
+wm_class="$(xprop -id "${active_window}" WM_CLASS 2>/dev/null || true)"
+
+if ! grep -qi 'gnome-terminal' <<<"${wm_class}"; then
+  exit 0
+fi
+
+if xclip -selection clipboard -o -t TARGETS 2>/dev/null | tr ' ' '\n' | grep -q '^image/'; then
+  xdotool key --clearmodifiers ctrl+v
+  exit 0
+fi
+
+# Keep a text-paste path available after reclaiming Ctrl+Shift+V from GNOME Terminal.
+xdotool key --clearmodifiers Shift+Insert

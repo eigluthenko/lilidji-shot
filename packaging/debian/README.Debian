@@ -1,0 +1,18 @@
+Пакет устанавливает:
+
+- /usr/bin/lilidji-shot
+- /usr/bin/lilidji-shot-ui
+- /usr/bin/codex-image-paste
+- /usr/bin/lilidji-shot-session-setup
+- /usr/share/applications/lilidji-screenshot.desktop
+- /etc/xdg/autostart/lilidji-shot-session-setup.desktop
+
+После установки:
+
+- Print: выбор области
+- Shift+Print: весь экран
+- Alt+Print: запуск скриншотера
+- Ctrl+Shift+V в GNOME Terminal: вставка изображения из буфера в Codex CLI
+- Shift+Insert в GNOME Terminal: обычная текстовая вставка
+
+Если горячие клавиши не применились сразу, выйдите из сеанса GNOME и войдите снова.
