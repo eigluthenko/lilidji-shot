@@ -8,6 +8,10 @@ if [[ -z "${active_window}" || "${active_window}" == "0x0" ]]; then
 fi
 
 wm_class="$(xprop -id "${active_window}" WM_CLASS 2>/dev/null || true)"
+window_object_path="$(
+  xprop -id "${active_window}" _GTK_WINDOW_OBJECT_PATH 2>/dev/null \
+    | sed -n 's/.*= "\(.*\)"/\1/p'
+)"
 
 if ! grep -qi 'gnome-terminal' <<<"${wm_class}"; then
   exit 0
@@ -18,5 +22,18 @@ if xclip -selection clipboard -o -t TARGETS 2>/dev/null | tr ' ' '\n' | grep -q 
   exit 0
 fi
 
-# Keep a text-paste path available after reclaiming Ctrl+Shift+V from GNOME Terminal.
+# Use GNOME Terminal's own paste action for text, so regular clipboard paste still works.
+if [[ -n "${window_object_path}" ]]; then
+  if gdbus call \
+    --session \
+    --dest org.gnome.Terminal \
+    --object-path "${window_object_path}" \
+    --method org.gtk.Actions.Activate \
+    paste-text \
+    "[]" \
+    "{}" >/dev/null 2>&1; then
+    exit 0
+  fi
+fi
+
 xdotool key --clearmodifiers Shift+Insert
