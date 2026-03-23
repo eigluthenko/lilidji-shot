@@ -1,2 +1,3 @@
 packaging/debian/build/
 packaging/debian/*.deb
+scripts/__pycache__/
