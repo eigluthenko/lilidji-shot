@@ -42,7 +42,7 @@ cd packaging/debian
 Ставить удобнее всего через релизный `.deb`:
 
 ```bash
-sudo apt install ./lilidji-shot_1.0.3-1_all.deb
+sudo apt install ./lilidji-shot_1.0.4-1_all.deb
 ```
 
 После установки пакет настраивает:

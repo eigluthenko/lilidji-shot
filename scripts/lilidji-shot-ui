@@ -25,6 +25,14 @@ TOOL_LABELS = {
     "arrow": "Стрелка",
 }
 
+TOOL_ICONS = {
+    "pencil": "document-edit-symbolic",
+    "marker": "format-text-bold-symbolic",
+    "square": "view-grid-symbolic",
+    "circle": "media-record-symbolic",
+    "arrow": "go-next-symbolic",
+}
+
 TOOL_ORDER = ["pencil", "marker", "square", "circle", "arrow"]
 
 
@@ -137,45 +145,56 @@ class ScreenshotWindow(Gtk.Window):
     def build_toolbar(self):
         toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         toolbar.set_name("toolbar")
-        toolbar.set_margin_start(16)
-        toolbar.set_margin_end(16)
-        toolbar.set_margin_bottom(8)
-        toolbar.set_border_width(10)
+        toolbar.set_margin_start(12)
+        toolbar.set_margin_end(12)
+        toolbar.set_margin_bottom(6)
+        toolbar.set_border_width(8)
 
-        self.draw_button = Gtk.Button()
-        self.draw_button.set_label(self.draw_button_text())
-        self.draw_button.set_sensitive(False)
+        self.draw_button = self.make_button(
+            TOOL_ICONS[self.current_tool],
+            self.draw_button_text(),
+            "Выбрать инструмент рисования",
+        )
         self.draw_button.connect("clicked", self.on_draw_button_clicked)
         toolbar.pack_start(self.draw_button, False, False, 0)
+        self.set_button_content(
+            self.draw_button,
+            TOOL_ICONS[self.current_tool],
+            self.draw_button_text(),
+        )
+        self.draw_button.get_style_context().add_class("tool-trigger")
+        self.tool_buttons = {}
         self.tool_popover = self.build_tool_popover()
 
         self.color_button = Gtk.ColorButton()
         self.color_button.set_use_alpha(False)
         self.color_button.set_rgba(self.draw_color)
         self.color_button.set_title("Цвет карандаша")
-        self.color_button.set_tooltip_text("Выбрать цвет карандаша")
-        self.color_button.set_sensitive(False)
+        self.color_button.set_tooltip_text("Выбрать цвет рисования")
         self.color_button.connect("color-set", self.on_color_selected)
+        self.color_button.get_style_context().add_class("color-swatch")
         toolbar.pack_start(self.color_button, False, False, 0)
 
-        self.cursor_toggle = Gtk.ToggleButton(label="Скрыть курсор")
+        self.cursor_toggle = Gtk.ToggleButton()
+        self.set_button_content(self.cursor_toggle, "input-mouse-symbolic")
+        self.cursor_toggle.set_tooltip_text("Скрыть курсор на итоговом скриншоте")
         self.cursor_toggle.set_active(True)
         self.cursor_toggle.set_sensitive(False)
         self.cursor_toggle.connect("toggled", self.on_cursor_toggle)
         toolbar.pack_start(self.cursor_toggle, False, False, 0)
 
-        self.undo_button = Gtk.Button(label="Отменить")
+        self.undo_button = self.make_button("edit-undo-symbolic", None, "Отменить последнее действие")
         self.undo_button.set_sensitive(False)
         self.undo_button.connect("clicked", self.on_undo)
         toolbar.pack_start(self.undo_button, False, False, 0)
 
-        self.done_button = Gtk.Button(label="Готово")
+        self.done_button = self.make_button("object-select-symbolic", "Готово", "Сохранить и скопировать")
         self.done_button.get_style_context().add_class("suggested-action")
         self.done_button.set_sensitive(False)
         self.done_button.connect("clicked", self.on_done)
         toolbar.pack_start(self.done_button, False, False, 0)
 
-        self.close_button = Gtk.Button(label="Закрыть")
+        self.close_button = self.make_button("window-close-symbolic", None, "Закрыть")
         self.close_button.connect("clicked", lambda *_: Gtk.main_quit())
         toolbar.pack_start(self.close_button, False, False, 0)
 
@@ -183,19 +202,51 @@ class ScreenshotWindow(Gtk.Window):
 
     def build_tool_popover(self):
         popover = Gtk.Popover.new(self.draw_button)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        box.set_margin_top(8)
-        box.set_margin_bottom(8)
-        box.set_margin_start(8)
-        box.set_margin_end(8)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        box.set_margin_top(6)
+        box.set_margin_bottom(6)
+        box.set_margin_start(6)
+        box.set_margin_end(6)
+        box.get_style_context().add_class("tool-menu")
         for tool in TOOL_ORDER:
-            button = Gtk.Button(label=TOOL_LABELS[tool])
+            button = self.make_button(TOOL_ICONS[tool], TOOL_LABELS[tool], TOOL_LABELS[tool])
+            button.get_style_context().add_class("tool-option")
             button.connect("clicked", self.on_tool_selected, tool, popover)
+            self.tool_buttons[tool] = button
             box.pack_start(button, False, False, 0)
         popover.add(box)
         popover.set_position(Gtk.PositionType.BOTTOM)
         box.show_all()
         return popover
+
+    def make_button(self, icon_name, label=None, tooltip=None):
+        button = Gtk.Button()
+        button.set_relief(Gtk.ReliefStyle.NONE)
+        if tooltip:
+            button.set_tooltip_text(tooltip)
+        self.set_button_content(button, icon_name, label)
+        return button
+
+    def set_button_content(self, button, icon_name, label=None):
+        for child in button.get_children():
+            button.remove(child)
+
+        content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        content.set_halign(Gtk.Align.CENTER)
+        content.set_valign(Gtk.Align.CENTER)
+
+        image = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
+        content.pack_start(image, False, False, 0)
+
+        label_widget = None
+        if label is not None:
+            label_widget = Gtk.Label(label=label)
+            label_widget.set_xalign(0.0)
+            content.pack_start(label_widget, False, False, 0)
+
+        content.show_all()
+        button.add(content)
+        return image, label_widget
 
     def on_realize(self, *_args):
         self.cover_virtual_screen()
@@ -213,39 +264,79 @@ class ScreenshotWindow(Gtk.Window):
         provider.load_from_data(
             b"""
             #toolbar {
-                background: rgba(86, 86, 86, 0.94);
-                border-radius: 16px;
-                border: 1px solid rgba(185, 185, 185, 0.4);
-                box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
-            }
-            #toolbar button, #toolbar togglebutton, #toolbar menubutton > button {
-                background: #6b6b6b;
-                color: #f3f3f3;
+                background: rgba(34, 36, 39, 0.94);
                 border-radius: 12px;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                padding: 8px 14px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34);
             }
-            #toolbar button:hover, #toolbar togglebutton:hover, #toolbar menubutton > button:hover {
-                background: #7b7b7b;
+            #toolbar button, #toolbar togglebutton, #toolbar colorbutton {
+                min-height: 36px;
+                min-width: 40px;
+                background: rgba(255, 255, 255, 0.08);
+                color: #f4f5f3;
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.10);
+                padding: 7px 10px;
+                transition: 160ms ease-out;
+            }
+            #toolbar button:hover, #toolbar togglebutton:hover, #toolbar colorbutton:hover {
+                background: rgba(255, 255, 255, 0.15);
+                border-color: rgba(255, 255, 255, 0.20);
             }
             #toolbar togglebutton:checked {
-                background: #4f4f4f;
+                background: rgba(255, 190, 92, 0.24);
+                border-color: rgba(255, 190, 92, 0.45);
+            }
+            #toolbar button:disabled, #toolbar togglebutton:disabled {
+                color: rgba(244, 245, 243, 0.38);
+                background: rgba(255, 255, 255, 0.04);
+                border-color: rgba(255, 255, 255, 0.06);
+            }
+            #toolbar .tool-trigger {
+                min-width: 136px;
+            }
+            #toolbar .suggested-action {
+                background: #d9f2df;
+                color: #122018;
+                border-color: rgba(217, 242, 223, 0.70);
+                font-weight: 700;
+            }
+            #toolbar .suggested-action:hover {
+                background: #c9ebd2;
+                border-color: rgba(239, 255, 244, 0.86);
+            }
+            #toolbar .color-swatch {
+                padding: 5px;
             }
             .hint {
-                color: #f3f3f3;
-                background: rgba(50, 50, 50, 0.84);
-                border-radius: 14px;
-                padding: 12px 14px;
+                color: rgba(245, 246, 244, 0.90);
+                background: rgba(25, 27, 30, 0.72);
+                border: 1px solid rgba(255, 255, 255, 0.10);
+                border-radius: 10px;
+                padding: 10px 12px;
                 font-size: 14px;
             }
             popover {
-                background: #5f5f5f;
+                background: #242629;
+                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
             }
             popover button {
-                background: #777777;
-                color: #ffffff;
-                border-radius: 10px;
-                padding: 8px 12px;
+                min-height: 36px;
+                min-width: 132px;
+                background: transparent;
+                color: #f4f5f3;
+                border-radius: 8px;
+                border: 1px solid transparent;
+                padding: 7px 10px;
+            }
+            popover button:hover {
+                background: rgba(255, 255, 255, 0.10);
+            }
+            popover button.selected {
+                background: rgba(217, 242, 223, 0.16);
+                border-color: rgba(217, 242, 223, 0.32);
+                color: #e9ffef;
             }
             """
         )
@@ -265,7 +356,17 @@ class ScreenshotWindow(Gtk.Window):
         self.cursor_toggle.set_sensitive(active)
         self.done_button.set_sensitive(active)
         self.undo_button.set_sensitive(bool(self.annotations))
-        self.draw_button.set_label(self.draw_button_text())
+        self.set_button_content(
+            self.draw_button,
+            TOOL_ICONS[self.current_tool],
+            self.draw_button_text(),
+        )
+        for tool, button in self.tool_buttons.items():
+            context = button.get_style_context()
+            if tool == self.current_tool:
+                context.add_class("selected")
+            else:
+                context.remove_class("selected")
 
     def update_hint(self):
         if self.selection is None:
@@ -320,7 +421,11 @@ class ScreenshotWindow(Gtk.Window):
         self.draw_color = button.get_rgba()
 
     def on_cursor_toggle(self, button):
-        button.set_label("Скрыть курсор" if button.get_active() else "Показать курсор")
+        button.set_tooltip_text(
+            "Скрыть курсор на итоговом скриншоте"
+            if button.get_active()
+            else "Показать курсор на итоговом скриншоте"
+        )
 
     def on_undo(self, *_args):
         if self.annotations:
