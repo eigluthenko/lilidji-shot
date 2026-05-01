@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${1:-1.0.2-1}"
+VERSION="${1:-1.0.3-1}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PACKAGING_DIR="${ROOT_DIR}/packaging/debian"
 WORK_DIR="${PACKAGING_DIR}/build"

@@ -14,7 +14,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 gi.require_version("PangoCairo", "1.0")
 
-from gi.repository import Gdk, Gtk  # noqa: E402
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
 
 TOOL_LABELS = {
@@ -85,9 +85,16 @@ class ScreenshotWindow(Gtk.Window):
 
         self.set_decorated(False)
         self.set_keep_above(True)
-        self.fullscreen()
+        self.set_skip_taskbar_hint(True)
+        self.set_skip_pager_hint(True)
+        self.set_type_hint(Gdk.WindowTypeHint.SPLASHSCREEN)
+        self.set_resizable(False)
+        self.stick()
+        self.set_default_size(self.screen_width, self.screen_height)
+        self.move(0, 0)
         self.connect("destroy", Gtk.main_quit)
         self.connect("key-press-event", self.on_key_press)
+        self.connect("realize", self.on_realize)
 
         overlay = Gtk.Overlay()
         self.add(overlay)
@@ -123,6 +130,8 @@ class ScreenshotWindow(Gtk.Window):
         self.update_toolbar()
         self.update_hint()
         self.show_all()
+        self.tool_popover.popdown()
+        GLib.idle_add(self.cover_virtual_screen)
         self.update_cursor()
 
     def build_toolbar(self):
@@ -185,8 +194,19 @@ class ScreenshotWindow(Gtk.Window):
             box.pack_start(button, False, False, 0)
         popover.add(box)
         popover.set_position(Gtk.PositionType.BOTTOM)
-        popover.show_all()
+        box.show_all()
         return popover
+
+    def on_realize(self, *_args):
+        self.cover_virtual_screen()
+
+    def cover_virtual_screen(self):
+        self.move(0, 0)
+        self.resize(self.screen_width, self.screen_height)
+        window = self.get_window()
+        if window is not None:
+            window.move_resize(0, 0, self.screen_width, self.screen_height)
+        return False
 
     def apply_css(self):
         provider = Gtk.CssProvider()
